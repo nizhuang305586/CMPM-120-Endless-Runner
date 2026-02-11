@@ -13,10 +13,10 @@
 const config = {
     parent: 'phaser-game',
     type: Phaser.WEBGL,
-    width: 1980,
-    height: 1080,
-    pixelArt: false,
-    zoom: 1,
+    width: 400,
+    height: 300,
+    pixelArt: true,
+    zoom: 2,
     physics: {
         default: 'arcade',
         arcade: {
