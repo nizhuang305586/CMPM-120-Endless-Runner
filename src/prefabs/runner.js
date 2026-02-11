@@ -6,40 +6,75 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
     
         this.body.setCollideWorldBounds(true)
 
+        const baseSpeed = 100
+
         //character values
-        this.baseSpeed = 100
+        this.RunnerSpeed = baseSpeed
         this.jumpPower = 200
+        this.speedStep = 15
+        this.maxSpeed = 500
 
         scene.runnerFSM = new StateMachine('run', {
             run: new RunState(),
-            projection: new ProjectionState(),
+            jump: new JumpState(),
             slide: new SlideState(),
+            projection: new ProjectionState(),
             freeze: new FreezeState(),
             trip: new TripState(),
             damage: new DamageState(),
         }, [scene, this])
     }
 
+    onProjectionSuccess() {
+        this.RunnerSpeed = Math.min(this.RunnerSpeed + this.speedStep, this.maxSpeed)
+    }
 
+    onTripOrFreeze() {
+        this.RunnerSpeed = this.baseSpeed
+    }
     
 }
 
 class RunState extends State {
     enter(scene, runner) {
-        runner.setVelocityX(runner.baseSpeed)
+        runner.setVelocityX(runner.RunnerSpeed)
     }
 
     execute(scene, runner) {
         const JumpKey = scene.keys.SpaceKey
         const SlideKey = scene.keys.SKey
+        const FramePKey = scene.keys.FKey
 
         if (Phaser.Input.Keyboard.JustDown(JumpKey)) {
-            runner.setVelocityY(-runner.jumpPower)
-            this.StateMachine.
+            this.stateMachine.transition('jump')
+            return
         }
 
         if (Phaser.Input.Keyboard.JustDown(SlideKey)) {
-            runner.
+            this.stateMachine.transition('slide')
+            return
         }
+
+        if (runner.body.velocity.x !== runner.RunnerSpeed) {
+            runner.setVelocityX(runner.RunnerSpeed)
+        }
+
+    }
+}
+
+class JumpState extends State {
+    execute(scene, runner) {
+        const SlideKey = scene.keys.SKey
+
+        if (runner.body.blocking.down) {
+            this.stateMachine.transition('run')
+            return
+        }
+    }
+}
+
+class SlideState extends State {
+    execute(scene, runner) {
+        
     }
 }
