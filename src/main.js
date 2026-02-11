@@ -1,4 +1,10 @@
-/**
+/*
+ * Nikolas Huang, CMPM 120, Feb 10
+ * 
+ *  FRAME PROJECTION
+ * 
+ * 
+ * 
  * 
  */
 
