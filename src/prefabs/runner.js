@@ -9,10 +9,13 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         const baseSpeed = 100
 
         //character values
-        this.RunnerSpeed = baseSpeed
+        this.RunnerSpeed = this.baseSpeed
         this.jumpPower = 200
         this.speedStep = 15
         this.maxSpeed = 500
+
+        this.worldSpeed = this.RunnerSpeed
+        this.baseSpeed = baseSpeed
 
         scene.runnerFSM = new StateMachine('run', {
             run: new RunState(),
@@ -27,17 +30,19 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
     onProjectionSuccess() {
         this.RunnerSpeed = Math.min(this.RunnerSpeed + this.speedStep, this.maxSpeed)
+        this.scene.worldSpeed = this.RunnerSpeed
     }
 
     onTripOrFreeze() {
         this.RunnerSpeed = this.baseSpeed
+        this.scene.worldSpeed = this.RunnerSpeed
     }
     
 }
 
 class RunState extends State {
     enter(scene, runner) {
-        runner.setVelocityX(runner.RunnerSpeed)
+        runner.setVelocityX(0)
     }
 
     execute(scene, runner) {
@@ -55,9 +60,7 @@ class RunState extends State {
             return
         }
 
-        if (runner.body.velocity.x !== runner.RunnerSpeed) {
-            runner.setVelocityX(runner.RunnerSpeed)
-        }
+        runner.x = runner.anchorX
 
     }
 }
@@ -66,7 +69,7 @@ class JumpState extends State {
     execute(scene, runner) {
         const SlideKey = scene.keys.SKey
 
-        if (runner.body.blocking.down) {
+        if (runner.body.blocked.down) {
             this.stateMachine.transition('run')
             return
         }
