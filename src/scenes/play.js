@@ -26,21 +26,10 @@ class Play extends Phaser.Scene {
         console.log('worldLayer size:', worldLayer.layer.width, worldLayer.layer.height)
         console.log('worldLayer has tile at 0,0 index:', worldLayer.getTileAt(0, 0)?.index)
         console.log('worldLayer non-empty tile count:', worldLayer.getTilesWithin().filter(t => t.index !== -1).length)
-
+        this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
         const hazardLayer = map.createLayer('Hazards', tileset, 0, 0)
-
         const dummySpawn = map.findObject('SpawnPoint', obj => obj.name === 'dummySpawn')
 
-
-
-
-        worldLayer.setCollisionByProperty({ collides: true })
-        hazardLayer.setCollisionByProperty({ hazard: true })
-
-
-
-
-        
         this.runner = this.add.rectangle(dummySpawn.x, dummySpawn.y, 32, 48, 0xffffff)
         this.physics.add.existing(this.runner)
 
@@ -58,6 +47,9 @@ class Play extends Phaser.Scene {
         this.cameras.main.startFollow(this.runner, true, 1, 1)
 
 
+
+        worldLayer.setCollisionByProperty({ collides: true })
+        hazardLayer.setCollisionByProperty({ hazard: true })
     }
 
     update() {
