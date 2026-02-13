@@ -290,7 +290,7 @@
                  "id":2,
                  "properties":[
                         {
-                         "name":"oneWay",
+                         "name":"collides",
                          "type":"bool",
                          "value":true
                         }]
