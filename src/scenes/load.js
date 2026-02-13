@@ -8,6 +8,8 @@ class Load extends Phaser.Scene {
         this.load.image('devTiles', 'assets/devTiles.png')
         this.load.on('loaderror', (file) => console.log('LOAD ERROR:', file.src))
 
+        this.load.image('testNaoya', 'assets/devNaoya.png')
+
     }
 
     create() {
