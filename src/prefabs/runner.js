@@ -7,15 +7,16 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         this.body.setCollideWorldBounds(true)
 
         const baseSpeed = 100
+        this.baseSpeed = baseSpeed
 
         //character values
         this.RunnerSpeed = this.baseSpeed
         this.jumpPower = 200
         this.speedStep = 15
         this.maxSpeed = 500
+        this.isSliding = false
 
         this.worldSpeed = this.RunnerSpeed
-        this.baseSpeed = baseSpeed
 
         scene.runnerFSM = new StateMachine('run', {
             run: new RunState(),
@@ -42,7 +43,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
 class RunState extends State {
     enter(scene, runner) {
-        runner.setVelocityX(0)
+        scene.worldSpeed = this.worldSpeed
     }
 
     execute(scene, runner) {
@@ -55,8 +56,13 @@ class RunState extends State {
             return
         }
 
-        if (Phaser.Input.Keyboard.JustDown(SlideKey)) {
+        if (SlideKey.isDown) {
             this.stateMachine.transition('slide')
+            return
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
+            this.stateMachine.transition('projection')
             return
         }
 
@@ -66,6 +72,11 @@ class RunState extends State {
 }
 
 class JumpState extends State {
+    enter(scene, runner) {
+        if (!runner.body.blocked.down) {
+            runner.setVelocityY(-runner.jumpPower)
+        }
+    }
     execute(scene, runner) {
         const SlideKey = scene.keys.SKey
 
@@ -77,7 +88,38 @@ class JumpState extends State {
 }
 
 class SlideState extends State {
+    enter(scene, runner) {
+        runner.isSliding = true
+    }
     execute(scene, runner) {
+        const JumpKey = scene.keys.SpaceKey
+        const FramePKey = scene.keys.FKey
         
+        if (Phaser.Input.Keyboard.JustDown(JumpKey)) {
+            this.stateMachine.transition('jump')
+            runner.isSliding = false
+            runner.body.setSize(32, 48)
+            runner.body.setOffset(0, 0)
+            return
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
+            this.stateMachine.transition('projection')
+            runner.isSliding = false
+            runner.body.setSize(32, 48)
+            runner.body.setOffset(0, 0)
+            return
+        }
+
+        if (!runner.isSliding) {
+            this.stateMachine.transition('run')
+            runner.isSliding = false
+            runner.body.setSize(32, 48)
+            runner.body.setOffset(0, 0)
+            return
+        }
+
+        runner.body.setSize(32, 16)
+        runner.body.setOffset(0, 32)
     }
 }

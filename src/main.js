@@ -1,7 +1,7 @@
 /*
  * Nikolas Huang, CMPM 120, Feb 10
  * 
- *  FRAME PROJECTION
+ *  Temporal Frame
  * 
  * Hours worked prediction: 5
  * 
@@ -11,12 +11,16 @@
 'use strict'
 
 const config = {
-    parent: 'phaser-game',
-    type: Phaser.WEBGL,
-    width: 400,
-    height: 300,
-    pixelArt: true,
-    zoom: 2,
+    type: Phaser.AUTO,
+    render: {
+        pixelArt: true
+    },
+    width: 1280,
+    height: 720,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
     physics: {
         default: 'arcade',
         arcade: {
