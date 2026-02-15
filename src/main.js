@@ -3,7 +3,7 @@
  * 
  *  Temporal Frame
  * 
- * Hours worked prediction: 5
+ * Hours worked prediction: 13
  * 
  * 
  */
@@ -13,10 +13,12 @@
 const config = {
     type: Phaser.AUTO,
     render: {
-        pixelArt: true
+        pixelArt: true,
+        roundPixels: true
     },
     width: 1280,
     height: 720,
+    zoom: 1,
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH

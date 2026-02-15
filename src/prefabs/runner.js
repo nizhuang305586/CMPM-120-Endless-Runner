@@ -134,7 +134,7 @@ class SlideState extends State {
 
 class ProjectionState extends State {
     enter(scene, runner) {
-
+        
     }
 
     execute(scene, runner) {

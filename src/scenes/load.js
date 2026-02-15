@@ -4,11 +4,18 @@ class Load extends Phaser.Scene {
     }
 
     preload() {
-        this.load.tilemapTiledJSON('devMap', 'assets/dev_map.json')
-        this.load.image('devTiles', 'assets/devTiles.png')
+        this.load.path = './assets/'
+
+        this.load.image('devTiles', 'devTiles.png')
+        this.load.image('TerrainTiles', 'Grassland_Terrain_Tileset.png')
+
+        this.load.tilemapTiledJSON('devMap', 'dev_map.json')
+        this.load.tilemapTiledJSON('chunk1', 'chunk1_platforming_mapV1.JSON')
+        this.load.tilemapTiledJSON('chunk2', 'chunk2_slider_mapV1.JSON')
+
         this.load.on('loaderror', (file) => console.log('LOAD ERROR:', file.src))
 
-        this.load.image('testNaoya', 'assets/devNaoya.png')
+        this.load.image('testNaoya', 'devNaoya.png')
 
     }
 
