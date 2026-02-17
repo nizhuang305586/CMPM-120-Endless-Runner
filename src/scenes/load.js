@@ -6,6 +6,8 @@ class Load extends Phaser.Scene {
     preload() {
         this.load.path = './assets/'
 
+        this.load.audio('Freeze', 'FreezeFrame.mp3')
+
         this.load.image('devTiles', 'devTiles.png')
         this.load.image('TerrainTiles', 'Grassland_Terrain_Tileset.png')
 

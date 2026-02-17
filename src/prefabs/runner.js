@@ -6,12 +6,14 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
     
         this.body.setCollideWorldBounds(true)
 
+        this.freezeSFX = scene.sound.add('Freeze')
+
         const baseSpeed = 150
         this.baseSpeed = baseSpeed
 
         //character values
         this.RunnerSpeed = this.baseSpeed
-        this.jumpPower = 340
+        this.jumpPower = 350
         this.speedStep = 15
         this.maxSpeed = 500
         this.isSliding = false
@@ -19,10 +21,8 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         scene.runnerFSM = new StateMachine('run', {
             run: new RunState(),
             jump: new JumpState(),
-            slide: new SlideState(),
             projection: new ProjectionState(),
             freeze: new FreezeState(),
-            trip: new TripState(),
             damage: new DamageState(),
         }, [scene, this])
 
@@ -31,7 +31,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         this.projSuccess = 0
         this.projFrameStep = 6
         this.projWindowMax = 5000
-        this.projWindowMin = 1500
+        this.projWindowMin = 2500
         this.projDecay = 350
         this.projStepMinPx = 48
         this.projStepMaxPx = 96
@@ -65,16 +65,10 @@ class RunState extends State {
 
     execute(scene, runner) {
         const JumpKey = scene.keys.SpaceKey
-        const SlideKey = scene.keys.SKey
         const FramePKey = scene.keys.FKey
 
         if (Phaser.Input.Keyboard.JustDown(JumpKey) && runner.body.blocked.down) {
             this.stateMachine.transition('jump')
-            return
-        }
-
-        if (SlideKey.isDown) {
-            this.stateMachine.transition('slide')
             return
         }
 
@@ -104,45 +98,6 @@ class JumpState extends State {
             return
         }
         runner.setVelocityX(runner.RunnerSpeed)
-    }
-}
-
-class SlideState extends State {
-    enter(scene, runner) {
-        runner.isSliding = true
-        runner.setVelocityX(runner.RunnerSpeed)
-    }
-    execute(scene, runner) {
-        const JumpKey = scene.keys.SpaceKey
-        const SlideKey = scene.keys.SKey
-        const FramePKey = scene.keys.FKey
-        
-        if (Phaser.Input.Keyboard.JustDown(JumpKey) && runner.body.blocked.down) {
-            runner.isSliding = false
-            runner.body.setSize(32, 48)
-            runner.body.setOffset(0, 0)
-            this.stateMachine.transition('jump')
-            return
-        }
-
-        if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
-            runner.returnState = 'slide'
-            runner.forceProjSlide = true
-            this.stateMachine.transition('projection')
-            return
-        }
-
-        if (!SlideKey.isDown) {
-            runner.isSliding = false
-            runner.body.setSize(32, 48)
-            runner.body.setOffset(0, 0)
-            this.stateMachine.transition('run')
-            return
-        }
-
-        runner.setVelocityX(runner.RunnerSpeed)
-        runner.body.setSize(32, 16)
-        runner.body.setOffset(0, 32)
     }
 }
 
@@ -189,18 +144,18 @@ class ProjectionState extends State {
         const dy = endY - startY
 
         const solidLayer = scene.platformslayer
+        
+        //prevent the first frame getting a large push towards the marker
+        const chainEndX = frontX + this.stepPx * this.framesTotal
+        const aimStrength = 0.2
+        const aimOffsetX = nextMarker ? (nextMarker.x - chainEndX) * aimStrength : 0
 
         for (let i = 0; i < this.framesTotal; i++) {
 
             //frame x placement
             const baseX = frontX + this.stepPx * (i + 1)
-            let targetX = baseX
-
-            if (nextMarker) {
-                const aimStrength = 0.2
-                targetX = baseX + (nextMarker.x - baseX) * aimStrength
-                targetX = Math.max(baseX, targetX)
-            }
+            let targetX = baseX + aimOffsetX
+            targetX = Math.max(baseX, targetX)
 
             //frame y placement
             const t = (i + 1) / this.framesTotal
@@ -208,9 +163,16 @@ class ProjectionState extends State {
 
             if (nextMarker && Math.abs(dy) >= CURVE_THRESHOLD) {
                 const arc = 4 * t * (1 - t)
-                const dir = Math.sign(dy)
                 const arcHeight = Phaser.Math.Clamp(Math.abs(dy) * 0.6, 24, 90)
-                targetY += dir * arcHeight * arc
+
+                //making sure any arc is concave down
+                const h0 = -startY
+                const h1 = -endY
+                let h = Phaser.Math.Linear(h0, h1, t)
+
+                h += arcHeight * arc
+                targetY = -h
+
             }
 
             //used for snapping towards the surface, prevent clipping through objects
@@ -341,18 +303,10 @@ class ProjectionState extends State {
 }
 
 class FreezeState extends State {
-    enter() {
-
-    }
-
-    execute() {
-
-    }
-}
-
-class TripState extends State {
-    enter() {
-
+    enter(scene, runner) {
+        runner.freezeSFX.play()
+        runner.setVelocity(0, 0)
+        runner
     }
 
     execute() {
