@@ -11,7 +11,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
         //character values
         this.RunnerSpeed = this.baseSpeed
-        this.jumpPower = 400
+        this.jumpPower = 340
         this.speedStep = 15
         this.maxSpeed = 500
         this.isSliding = false
@@ -28,20 +28,31 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
         //projection values
         this.returnState = 'run'
-        this.projSuccess = 0 //amount of succesful projections
-        this.projWindowMax = 5 //starting time for projections
-        this.projWindowMin = 1.5 //mininum time given after certain amount of successful projections
-        this.projDecay = 0.5 //decay in time every successful projection
-        this.projFrameStep = 6 //how many frames
+        this.projSuccess = 0
+        this.projFrameStep = 6
+        this.projWindowMax = 5000
+        this.projWindowMin = 1500
+        this.projDecay = 350
+        this.projStepMinPx = 48
+        this.projStepMaxPx = 96
+        this.forceProjSlide = false
     }
 
+    getProjWindowsMs() {
+        return Math.max(this.projWindowMin, this.projWindowMax - this.projSuccess * this.projDecay)
+    }
+
+    getProjStepPx() {
+        const t = Phaser.Math.Clamp(this.projSuccess / 10, 0, 1)
+        return Math.round(Phaser.Math.Linear(this.projStepMinPx, this.projStepMaxPx, t))
+    }
 
     onProjectionSuccess() {
-        this.RunnerSpeed = Math.min(this.RunnerSpeed + this.speedStep, this.maxSpeed)
+        return this.RunnerSpeed = Math.min(this.RunnerSpeed + this.speedStep, this.maxSpeed)
     }
 
     onTripOrFreeze() {
-        this.RunnerSpeed = this.baseSpeed
+        return this.RunnerSpeed = this.baseSpeed
     }
     
 }
@@ -68,6 +79,7 @@ class RunState extends State {
 
         if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
             runner.returnState = 'run'
+            runner.forceProjSlide = false
             this.stateMachine.transition('projection')
             return
         }
@@ -114,6 +126,7 @@ class SlideState extends State {
 
         if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
             runner.returnState = 'slide'
+            runner.forceProjSlide = true
             this.stateMachine.transition('projection')
             return
         }
@@ -134,11 +147,164 @@ class SlideState extends State {
 
 class ProjectionState extends State {
     enter(scene, runner) {
-        
+
+        runner._projSaved = {
+            allowGravity: runner.body.allowGravity,
+            vx: runner.body.velocity.x,
+            vy: runner.body.velocity.y,
+            moves: runner.body.moves,
+        }
+
+        runner.body.setAllowGravity(false)
+        runner.body.setVelocity(0, 0)
+        runner.body.moves = false
+
+        runner.body.reset(runner.x, runner.y)
+
+        scene.physics.world.timeScale = 0.2
+        scene.cameras.main.stopFollow()
+
+        this.framesTotal = runner.projFrameStep
+        this.windowMs = runner.getProjWindowsMs()
+        this.timeLeft = this.windowMs
+        this.stepPx = runner.getProjStepPx()
+
+        this.index = 0
+        this.sequence = []
+        this.spriteFrames = []
+        for (let i = 0; i < this.framesTotal; i++) {
+            this.sequence.push(Math.random() < 0.5 ? 'A' : 'D')
+        }
+
+        const nextMarker = scene.safeZones[0] || null
+        const frontX = runner.body ? runner.body.right : runner.getBounds().right
+
+        for (let i = 0; i < this.framesTotal; i++) {
+            let baseX = frontX + this.stepPx * (i + 1)
+            let targetX = baseX
+
+            if (nextMarker) {
+                const aimStrength = 0.2
+                targetX = baseX + (nextMarker.x - baseX) * aimStrength
+                targetX = Math.max(baseX, targetX)
+            }
+            
+            const startY = runner.y
+            const endY = nextMarker ? nextMarker.y : runner.y
+
+            const t = (i + 1) / this.framesTotal
+            const arc = 4 * t * (1 - t)
+            const arcHeight = 64
+            const dir = Math.sign(endY - startY)
+            let targetY = Phaser.Math.Linear(startY, endY, t) + (-dir) * arcHeight * arc
+
+            const ghost = scene.add.sprite(targetX, targetY, runner.texture.key)
+            ghost.setTint(0x9933ff)
+            ghost.setAlpha(0.7)
+            ghost.setDepth(9)
+
+            const label = scene.add.text(
+                ghost.x,
+                ghost.y - 40,
+                this.sequence[i],
+                { fontSize: '20px', color: '#ffffff'}
+            ).setOrigin(0.5)
+            label.setDepth(8)
+
+            this.spriteFrames.push({ ghost, label })
+        }
+
+        this.projMode = runner.forceProjSlide ? 'slide' : 'run'
+        runner.forceProjSlide = false
     }
 
     execute(scene, runner) {
+        this.timeLeft -= scene.game.loop.delta
+        if (this.timeLeft <= 0) {
+            this.fail(scene, runner)
+            return
+        }
 
+        let pressed = null
+        if (Phaser.Input.Keyboard.JustDown(scene.keys.AKey)) pressed = 'A'
+        if (Phaser.Input.Keyboard.JustDown(scene.keys.DKey)) pressed = 'D'
+        if (!pressed) return
+
+        if (pressed !== this.sequence[this.index]) {
+            this.fail(scene, runner)
+            return
+        }
+        
+        this.spriteFrames[this.index].ghost.setTint(0x55ff55)
+        const target = this.spriteFrames[this.index].ghost
+
+        scene.tweens.add({
+            targets: runner,
+            x: target.x,
+            y: target.y,
+            duration: 90,
+            ease: 'Sine.Out',
+            onUpdate: () => {
+                runner.body.reset(runner.x, runner.y)
+            },
+            onComplete: () => {
+                runner.body.reset(runner.x, runner.y)
+            }
+        })
+
+        this.index++
+
+        if (this.index >= this.framesTotal) this.success(scene, runner)
+
+
+    }
+
+    clearGhosts() {
+        for (const g of this.spriteFrames) {
+            g.ghost.destroy()
+            g.label.destroy()
+        }
+        this.spriteFrames = []
+    }
+
+    success(scene, runner) {
+        this.clearGhosts()
+
+        scene.physics.world.timeScale = 1
+        scene.cameras.main.startFollow(runner)
+        scene.cameras.main.setDeadzone(0, 0)
+        scene.cameras.main.setFollowOffset(-scene.scale.width * 0.25, 0)
+
+        runner.projSuccess++
+
+        const s = runner._projSaved
+        runner.body.moves = s.moves
+        runner.body.setAllowGravity(s.allowGravity)
+        runner.body.setVelocity(runner.onProjectionSuccess(), s.vy)
+        runner._projSaved = null
+
+
+        this.stateMachine.transition(runner.returnState)
+    }
+
+    fail(scene, runner) {
+
+        this.clearGhosts()
+
+        scene.physics.world.timeScale = 1
+        scene.cameras.main.startFollow(runner)
+        scene.cameras.main.setDeadzone(0, 0)
+        scene.cameras.main.setFollowOffset(-scene.scale.width * 0.25, 0)
+
+        runner.projSuccess = 0
+        
+        const s = runner._projSaved
+        runner.body.moves = s.moves
+        runner.body.setAllowGravity(s.allowGravity)
+        runner.body.setVelocity(runner.onTripOrFreeze(), s.vy)
+        runner._projSaved = null
+
+        this.stateMachine.transition('freeze')
     }
 }
 

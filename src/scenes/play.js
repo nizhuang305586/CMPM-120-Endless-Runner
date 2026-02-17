@@ -4,10 +4,11 @@ class Play extends Phaser.Scene {
     }
 
     create() {
+
         //create keys
         this.keys = this.input.keyboard.addKeys({
-            QKey: Phaser.Input.Keyboard.KeyCodes.Q,
-            EKey: Phaser.Input.Keyboard.KeyCodes.E,
+            AKey: Phaser.Input.Keyboard.KeyCodes.A,
+            DKey: Phaser.Input.Keyboard.KeyCodes.D,
             SKey: Phaser.Input.Keyboard.KeyCodes.S,
             FKey: Phaser.Input.Keyboard.KeyCodes.F,
             SpaceKey: Phaser.Input.Keyboard.KeyCodes.SPACE
@@ -19,15 +20,17 @@ class Play extends Phaser.Scene {
         this.CHUNK_H_PX = this.TILE * this.CHUNK_H_TILES
         this.PRELOAD_BUFFER = 600
 
+        this.oldKey = null
         this.activeChunks = []
         this.safeZones = []
         this.worldEndX = 0
 
-        this.chunkKeys = ['chunk2']
+        this.chunkKeys = ['chunk2', 'chunk3']
 
         const { runnerSP, platformsLayer, hazardsLayer } = this.spawnChunk('chunk1', 0)
         this.runner = new Runner(this, runnerSP.x, runnerSP.y, 'testNaoya', 0)
-        this.runner.body.setGravityY(800)
+        this.runner.setDepth(10)
+        this.runner.body.setGravityY(1000)
         this.runner.body.setCollideWorldBounds(true)
 
         this.cameras.main.startFollow(this.runner, true, 1, 1)
@@ -53,7 +56,10 @@ class Play extends Phaser.Scene {
         const tileset2 = map.addTilesetImage('dev_tiles', 'devTiles')
         const yOffset = this.scale.height - map.heightInPixels
 
+        const sBackgroundLayer = map.createLayer('SoftBackground', tileset1, chunkX, yOffset)
         const platformsLayer = map.createLayer('Platforms', tileset1, chunkX, yOffset)
+        sBackgroundLayer.setDepth(0)
+        platformsLayer.setDepth(2)
         platformsLayer.setCollisionByProperty({ colliders: true })
 
         let runnerSP = null
@@ -65,6 +71,7 @@ class Play extends Phaser.Scene {
         let hazardsLayer = null
         if (map.getLayer('Hazards')) {
             hazardsLayer = map.createLayer('Hazards', tileset2, chunkX, yOffset)
+            hazardsLayer.setDepth(1)
             hazardsLayer.setCollisionByProperty({ hazard: true })
         }
 
@@ -112,7 +119,10 @@ class Play extends Phaser.Scene {
         const camRight = this.cameras.main.worldView.right
         if (camRight + this.PRELOAD_BUFFER >= this.worldEndX) {
             const nextKey = Phaser.Utils.Array.GetRandom(this.chunkKeys)
-            this.spawnChunk(nextKey, this.worldEndX)
+            if (this.oldKey !== nextKey) {
+                this.spawnChunk(nextKey, this.worldEndX)
+                this.oldKey = nextKey
+            }
         }
     }
 
