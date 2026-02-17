@@ -36,6 +36,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         this.projStepMinPx = 48
         this.projStepMaxPx = 96
         this.forceProjSlide = false
+        this.currentStepPx = 48
     }
 
     getProjWindowsMs() {
@@ -176,11 +177,23 @@ class ProjectionState extends State {
             this.sequence.push(Math.random() < 0.5 ? 'A' : 'D')
         }
 
-        const nextMarker = scene.safeZones[0] || null
+        let MIN_AHEAD = this.stepPx
+        const CURVE_THRESHOLD = 16
+
         const frontX = runner.body ? runner.body.right : runner.getBounds().right
+        const startY = runner.y
+
+        //choose only valid forward marker
+        const nextMarker = (scene.safeZones || []).find(z => z.x >= runner.x + MIN_AHEAD)
+        const endY = nextMarker ? nextMarker.y : startY
+        const dy = endY - startY
+
+        const solidLayer = scene.platformslayer
 
         for (let i = 0; i < this.framesTotal; i++) {
-            let baseX = frontX + this.stepPx * (i + 1)
+
+            //frame x placement
+            const baseX = frontX + this.stepPx * (i + 1)
             let targetX = baseX
 
             if (nextMarker) {
@@ -188,34 +201,53 @@ class ProjectionState extends State {
                 targetX = baseX + (nextMarker.x - baseX) * aimStrength
                 targetX = Math.max(baseX, targetX)
             }
-            
-            const startY = runner.y
-            const endY = nextMarker ? nextMarker.y : runner.y
 
+            //frame y placement
             const t = (i + 1) / this.framesTotal
-            const arc = 4 * t * (1 - t)
-            const arcHeight = 64
-            const dir = Math.sign(endY - startY)
-            let targetY = Phaser.Math.Linear(startY, endY, t) + (-dir) * arcHeight * arc
+            let targetY = Phaser.Math.Linear(startY, endY, t)
 
-            const ghost = scene.add.sprite(targetX, targetY, runner.texture.key)
-            ghost.setTint(0x9933ff)
-            ghost.setAlpha(0.7)
-            ghost.setDepth(9)
+            if (nextMarker && Math.abs(dy) >= CURVE_THRESHOLD) {
+                const arc = 4 * t * (1 - t)
+                const dir = Math.sign(dy)
+                const arcHeight = Phaser.Math.Clamp(Math.abs(dy) * 0.6, 24, 90)
+                targetY += dir * arcHeight * arc
+            }
+
+            //used for snapping towards the surface, prevent clipping through objects
+            if (solidLayer) {
+                let snapped = false
+
+                for (let offset = -80; offset <= 80; offset += 8) {
+
+                    const yTry = targetY + offset
+                    const tile = solidLayer.getTileAtWorldXY(targetX, yTry, true)
+
+                    if (tile && tile.collides) {
+                        targetY = tile.getTop() - runner.body.height / 2
+                        snapped = true
+                        break
+                    }
+                }
+
+                if (!snapped) {
+                    targetY = Phaser.Math.Clamp(targetY, startY - 140, startY + 140)
+                }
+            }
+
+            const ghostFrame = scene.add.sprite(targetX, targetY, 'testNaoya')
+            ghostFrame.setTint(0x9933ff)
+            ghostFrame.setAlpha(0.8)
+            ghostFrame.setDepth(9)
 
             const label = scene.add.text(
-                ghost.x,
-                ghost.y - 40,
+                ghostFrame.x,
+                ghostFrame.y - 40,
                 this.sequence[i],
                 { fontSize: '20px', color: '#ffffff'}
             ).setOrigin(0.5)
             label.setDepth(8)
-
-            this.spriteFrames.push({ ghost, label })
+            this.spriteFrames.push({ ghostFrame, label })
         }
-
-        this.projMode = runner.forceProjSlide ? 'slide' : 'run'
-        runner.forceProjSlide = false
     }
 
     execute(scene, runner) {
@@ -235,8 +267,8 @@ class ProjectionState extends State {
             return
         }
         
-        this.spriteFrames[this.index].ghost.setTint(0x55ff55)
-        const target = this.spriteFrames[this.index].ghost
+        this.spriteFrames[this.index].ghostFrame.setTint(0x55ff55)
+        const target = this.spriteFrames[this.index].ghostFrame
 
         scene.tweens.add({
             targets: runner,
@@ -261,7 +293,7 @@ class ProjectionState extends State {
 
     clearGhosts() {
         for (const g of this.spriteFrames) {
-            g.ghost.destroy()
+            g.ghostFrame.destroy()
             g.label.destroy()
         }
         this.spriteFrames = []
