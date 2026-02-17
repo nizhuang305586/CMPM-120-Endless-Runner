@@ -5,11 +5,14 @@ class Play extends Phaser.Scene {
 
     create() {
 
+        this.bgMusic = this.sound.add('bgMuix', { loop: true })
+        this.bgMusic.play()
+        this.bgMusic.setVolume(0.1)
+
         //create keys
         this.keys = this.input.keyboard.addKeys({
             AKey: Phaser.Input.Keyboard.KeyCodes.A,
             DKey: Phaser.Input.Keyboard.KeyCodes.D,
-            SKey: Phaser.Input.Keyboard.KeyCodes.S,
             FKey: Phaser.Input.Keyboard.KeyCodes.F,
             SpaceKey: Phaser.Input.Keyboard.KeyCodes.SPACE
         })
