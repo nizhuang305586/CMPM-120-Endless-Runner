@@ -9,12 +9,23 @@ class Play extends Phaser.Scene {
         this.bgMusic.play()
         this.bgMusic.setVolume(0.1)
 
+        this.anims.create({
+            key: 'run',
+            frames: this.anims.generateFrameNumbers('naoya', {
+                start: 0,
+                end: 7
+            }),
+            frameRate: 12,
+            repeat: -1
+        })
+
         //create keys
         this.keys = this.input.keyboard.addKeys({
             AKey: Phaser.Input.Keyboard.KeyCodes.A,
             DKey: Phaser.Input.Keyboard.KeyCodes.D,
             FKey: Phaser.Input.Keyboard.KeyCodes.F,
-            SpaceKey: Phaser.Input.Keyboard.KeyCodes.SPACE
+            SpaceKey: Phaser.Input.Keyboard.KeyCodes.SPACE,
+            DebugKey: Phaser.Input.Keyboard.KeyCodes.G
         })
         this.TILE = 16
         this.CHUNK_W_TILES = 48
@@ -32,9 +43,9 @@ class Play extends Phaser.Scene {
         this.chunkKeys = ['chunk2', 'chunk3']
 
         const { runnerSP, platformsLayer, hazardsLayer } = this.spawnChunk('chunk1', 0)
-        this.solidLayers.push(platformsLayer)
+        this.runner = new Runner(this, runnerSP.x, runnerSP.y, 'naoya', 0)
+
         this.physics.add.collider(this.runner, platformsLayer)
-        this.runner = new Runner(this, runnerSP.x, runnerSP.y, 'testNaoya', 0)
         this.runner.setDepth(10)
         this.runner.body.setGravityY(1000)
         this.runner.body.setCollideWorldBounds(true)
@@ -47,6 +58,10 @@ class Play extends Phaser.Scene {
         const worldH = Math.max(this.CHUNK_H_PX, this.scale.height)
         this.physics.world.setBounds(0, 0, this.worldEndX, worldH)
         this.cameras.main.setBounds(0, 0, this.worldEndX, worldH)
+
+        this.freezeFrame = this.add.image(this.runner.x, this.runner.y, 'FreezeFrame')
+        this.freezeFrame.setDepth(this.runner.depth - 1)
+        this.freezeFrame.setVisible(false)
 
         if (hazardsLayer) {
             this.physics.add.overlap(this.runner, hazardsLayer, () => console.log('Hit Hazard'))
@@ -82,12 +97,12 @@ class Play extends Phaser.Scene {
             hazardsLayer.setCollisionByProperty({ hazard: true })
         }
 
+        
+        let platformCollider = null
+        let hazardOverlap = null
         if (this.runner) {
-            this.physics.add.collider(this.runner, platformsLayer)
-
-            if (hazardsLayer) {
-                this.physics.add.overlap(this.runner, hazardsLayer, () => console.log('Hit Hazard'))
-            }
+            platformCollider = this.physics.add.collider(this.runner, platformsLayer)
+            if (hazardsLayer) hazardOverlap = this.physics.add.overlap(this.runner, hazardsLayer, () => console.log('Hit Hazard'))
         }
 
         const markers = map.getObjectLayer('Markers')
@@ -109,7 +124,9 @@ class Play extends Phaser.Scene {
             chunkX,
             map,
             platformsLayer,
-            hazardsLayer
+            hazardsLayer,
+            platformCollider,
+            hazardOverlap
         })
 
         const worldH = Math.max(this.CHUNK_H_PX, this.scale.height)
@@ -131,6 +148,20 @@ class Play extends Phaser.Scene {
                 this.oldKey = nextKey
             }
         }
+
+        if (Phaser.Input.Keyboard.JustDown(this.keys.DebugKey)) {
+            const world = this.physics.world
+            world.drawDebug = !world.drawDebug
+
+            if (world.drawDebug) {
+                world.debugGraphic.clear()
+                world.drawDebug = true
+            } else {
+                world.debugGraphic.clear()
+            }
+        }
+
+        this.freezeFrame.setPosition(this.runner.x, this.runner.y)
     }
 
 }

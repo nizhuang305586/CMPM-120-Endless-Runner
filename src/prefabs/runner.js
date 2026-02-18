@@ -10,6 +10,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
         const baseSpeed = 150
         this.baseSpeed = baseSpeed
+        this.setScale(0.24)
 
         //character values
         this.RunnerSpeed = this.baseSpeed
@@ -60,6 +61,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
 class RunState extends State {
     enter(scene, runner) {
+        runner.anims.play('run', true)
         runner.setVelocityX(runner.RunnerSpeed)
     }
 
@@ -114,6 +116,8 @@ class ProjectionState extends State {
             moves: runner.body.moves,
         }
 
+        runner.anims.stop()
+
         runner.body.setAllowGravity(false)
         runner.body.setVelocity(0, 0)
         runner.body.moves = false
@@ -142,7 +146,7 @@ class ProjectionState extends State {
         //Projection Reach scales with speed
         //-----------------------------------------
         let MIN_AHEAD = this.stepPx
-        let MAX_Y_REACH = this.stepPx
+        let MAX_Y_REACH = this.stepPx * this.framesTotal
         const CURVE_THRESHOLD = 16
 
         const frontX = runner.body ? runner.body.right : runner.getBounds().right
@@ -200,15 +204,24 @@ class ProjectionState extends State {
             return true
         }
 
-        const nudgeX = (x, y) => {
+        const nudgeX = (x, y, minX) => {
             if (solidLayers.length === 0) return x
             if (!frameBlocked(x, y)) return x
 
             const maxNudge = 32
+
+            // Prefer forward nudges first (never collapses spacing)
             for (let d = 8; d <= maxNudge; d += 8) {
-                if (!frameBlocked(x + d, y)) return x + d
-                if (!frameBlocked(x - d, y)) return x - d
+                const xf = x + d
+                if (!frameBlocked(xf, y)) return Math.max(xf, minX)
             }
+
+            // If you really need backward nudges, still never allow going behind minX
+            for (let d = 8; d <= maxNudge; d += 8) {
+                const xb = x - d
+                if (!frameBlocked(xb, y)) return Math.max(xb, minX)
+            }
+
             return null
         }
 
@@ -247,7 +260,7 @@ class ProjectionState extends State {
         //build ONE frame position using the current rules
         //(used both for validating markers and for the real ghosts)
 
-        const computeFrame = (endY, dy, aimOffsetX, i) => {
+        const computeFrame = (endY, dy, aimOffsetX, i, prevX) => {
             const t = (i + 1) / this.framesTotal
 
             const baseX = frontX + this.stepPx * (i + 1)
@@ -272,8 +285,13 @@ class ProjectionState extends State {
             const snap = snapToGround(x, y)
             y = snap.y
 
+            if (prevX != null) {
+                x = Math.max(x, prevX + this.stepPx)
+            }
+
+
             //nudge off collisions
-            const nx = nudgeX(x, y)
+            const nx = nudgeX(x, y, baseX)
             if (nx === null) return null
             x = nx
 
@@ -295,7 +313,7 @@ class ProjectionState extends State {
             let prev = { x: runner.x, y: runner.y }
 
             for (let i = 0; i < this.framesTotal; i++) {
-                const p = computeFrame(endY, dy, aimOffsetX, i)
+                const p = computeFrame(endY, dy, aimOffsetX, i, prev.x)
                 if (!p) return false
 
                 // NEW: reject if you'd have to pass through a solid to reach this frame
@@ -324,14 +342,18 @@ class ProjectionState extends State {
         const dy = endY - startY
         const aimOffsetX = nextMarker ? aimForMarker(nextMarker) : 0
 
+        let prevX = null
         for (let i = 0; i < this.framesTotal; i++) {
-            const p = computeFrame(endY, dy, aimOffsetX, i)
+            const p = computeFrame(endY, dy, aimOffsetX, i, prevX)
             
             //if a frame becomes invalid, clamp near runner rather than stretching
             const x = p ? p.x : (frontX + this.stepPx * (i + 1))
             const y = p ? p.y : Phaser.Math.Clamp(Phaser.Math.Linear(startY, endY, (i + 1) / this.framesTotal), startY - 140, startY + 140)
+
+            prevX = x
             
-            const ghostFrame = scene.add.sprite(x, y, 'testNaoya')
+            const ghostFrame = scene.add.sprite(x, y, 'naoya', i)
+            ghostFrame.setScale(0.24)
             ghostFrame.setTint(0x9933ff)
             ghostFrame.setAlpha(0.8)
             ghostFrame.setDepth(9)
@@ -374,6 +396,7 @@ class ProjectionState extends State {
             duration: 90,
             ease: 'Sine.Out',
             onUpdate: () => {
+                runner.setFrame(this.index)
                 runner.body.reset(runner.x, runner.y)
             },
             onComplete: () => {
@@ -443,11 +466,16 @@ class FreezeState extends State {
 
         runner.freezeSFX.play()
         runner.setVelocity(0, 0)
+
+        scene.freezeFrame.setVisible(true)
+        runner.setAlpha(0.9)
     }
 
     execute(scene, runner) {
         this.timeLeft -= scene.game.loop.delta
         if (this.timeLeft <= 0) {
+            scene.freezeFrame.setVisible(false)
+            runner.clearTint()
             this.stateMachine.transition('run')
             return
         }
