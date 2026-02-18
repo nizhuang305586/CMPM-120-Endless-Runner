@@ -141,8 +141,8 @@ class ProjectionState extends State {
         //-----------------------------------------
         //Projection Reach scales with speed
         //-----------------------------------------
-        let MIN_AHEAD = this.stepPx * this.framesTotal
-        let MAX_Y_REACH = this.stepPx * this.framesTotal
+        let MIN_AHEAD = this.stepPx
+        let MAX_Y_REACH = this.stepPx
         const CURVE_THRESHOLD = 16
 
         const frontX = runner.body ? runner.body.right : runner.getBounds().right
@@ -328,9 +328,10 @@ class ProjectionState extends State {
             const p = computeFrame(endY, dy, aimOffsetX, i)
             
             //if a frame becomes invalid, clamp near runner rather than stretching
-            if (!p) break
+            const x = p ? p.x : (frontX + this.stepPx * (i + 1))
+            const y = p ? p.y : Phaser.Math.Clamp(Phaser.Math.Linear(startY, endY, (i + 1) / this.framesTotal), startY - 140, startY + 140)
             
-            const ghostFrame = scene.add.sprite(p.x, p.y, 'testNaoya')
+            const ghostFrame = scene.add.sprite(x, y, 'testNaoya')
             ghostFrame.setTint(0x9933ff)
             ghostFrame.setAlpha(0.8)
             ghostFrame.setDepth(9)
@@ -438,7 +439,7 @@ class ProjectionState extends State {
 
 class FreezeState extends State {
     enter(scene, runner) {
-        this.timeLeft = 1000
+        this.timeLeft = 1500
 
         runner.freezeSFX.play()
         runner.setVelocity(0, 0)

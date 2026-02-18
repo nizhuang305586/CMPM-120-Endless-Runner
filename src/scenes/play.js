@@ -26,11 +26,14 @@ class Play extends Phaser.Scene {
         this.oldKey = null
         this.activeChunks = []
         this.safeZones = []
+        this.solidLayers = []
         this.worldEndX = 0
 
         this.chunkKeys = ['chunk2', 'chunk3']
 
         const { runnerSP, platformsLayer, hazardsLayer } = this.spawnChunk('chunk1', 0)
+        this.solidLayers.push(platformsLayer)
+        this.physics.add.collider(this.runner, platformsLayer)
         this.runner = new Runner(this, runnerSP.x, runnerSP.y, 'testNaoya', 0)
         this.runner.setDepth(10)
         this.runner.body.setGravityY(1000)
@@ -44,8 +47,6 @@ class Play extends Phaser.Scene {
         const worldH = Math.max(this.CHUNK_H_PX, this.scale.height)
         this.physics.world.setBounds(0, 0, this.worldEndX, worldH)
         this.cameras.main.setBounds(0, 0, this.worldEndX, worldH)
-
-        this.physics.add.collider(this.runner, platformsLayer)
 
         if (hazardsLayer) {
             this.physics.add.overlap(this.runner, hazardsLayer, () => console.log('Hit Hazard'))
@@ -64,6 +65,9 @@ class Play extends Phaser.Scene {
         sBackgroundLayer.setDepth(0)
         platformsLayer.setDepth(2)
         platformsLayer.setCollisionByProperty({ colliders: true })
+
+        this.solidLayers = this.solidLayers || []
+        this.solidLayers.push(platformsLayer)
 
         let runnerSP = null
         if (key === 'chunk1') {
