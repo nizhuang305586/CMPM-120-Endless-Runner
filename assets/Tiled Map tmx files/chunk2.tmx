@@ -318,13 +318,13 @@
 </data>
  </layer>
  <objectgroup id="4" name="Markers">
-  <object id="1" name="SafeZone" x="397" y="339"/>
-  <object id="2" name="SafeZone" x="138" y="434"/>
-  <object id="3" name="SafeZone" x="333" y="484"/>
-  <object id="4" name="SafeZone" x="653" y="484" width="1"/>
-  <object id="5" name="SafeZone" x="651" y="338"/>
-  <object id="6" name="SafeZone" x="168" y="229"/>
-  <object id="7" name="SafeZone" x="611" y="244"/>
+  <object id="1" name="SafeZone" x="397" y="322"/>
+  <object id="2" name="SafeZone" x="138" y="418"/>
+  <object id="3" name="SafeZone" x="333" y="466"/>
+  <object id="4" name="SafeZone" x="653" y="470" width="1"/>
+  <object id="5" name="SafeZone" x="651" y="324"/>
+  <object id="6" name="SafeZone" x="168" y="209"/>
+  <object id="7" name="SafeZone" x="611" y="226"/>
   <object id="8" name="HazardZone" x="267" y="488"/>
   <object id="9" name="HazardZone" x="38" y="487"/>
  </objectgroup>

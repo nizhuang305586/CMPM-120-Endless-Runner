@@ -145,7 +145,7 @@
                  "visible":true,
                  "width":0,
                  "x":126,
-                 "y":260
+                 "y":241
                 }, 
                 {
                  "height":0,
@@ -156,7 +156,7 @@
                  "visible":true,
                  "width":0,
                  "x":500,
-                 "y":87
+                 "y":65
                 }, 
                 {
                  "height":0,
@@ -167,7 +167,7 @@
                  "visible":true,
                  "width":0,
                  "x":540,
-                 "y":290
+                 "y":271
                 }, 
                 {
                  "height":0,
@@ -178,7 +178,7 @@
                  "visible":true,
                  "width":0,
                  "x":50,
-                 "y":487
+                 "y":466
                 }, 
                 {
                  "height":0,
@@ -189,7 +189,7 @@
                  "visible":true,
                  "width":0,
                  "x":342,
-                 "y":468
+                 "y":450
                 }, 
                 {
                  "height":0,
@@ -200,7 +200,7 @@
                  "visible":true,
                  "width":0,
                  "x":670,
-                 "y":450
+                 "y":436
                 }, 
                 {
                  "height":0,
@@ -518,6 +518,24 @@
                         }]
                 }, 
                 {
+                 "id":39,
+                 "properties":[
+                        {
+                         "name":"colliders",
+                         "type":"bool",
+                         "value":true
+                        }]
+                }, 
+                {
+                 "id":40,
+                 "properties":[
+                        {
+                         "name":"colliders",
+                         "type":"bool",
+                         "value":true
+                        }]
+                }, 
+                {
                  "id":48,
                  "properties":[
                         {
@@ -528,6 +546,24 @@
                 }, 
                 {
                  "id":49,
+                 "properties":[
+                        {
+                         "name":"colliders",
+                         "type":"bool",
+                         "value":true
+                        }]
+                }, 
+                {
+                 "id":50,
+                 "properties":[
+                        {
+                         "name":"colliders",
+                         "type":"bool",
+                         "value":true
+                        }]
+                }, 
+                {
+                 "id":51,
                  "properties":[
                         {
                          "name":"colliders",

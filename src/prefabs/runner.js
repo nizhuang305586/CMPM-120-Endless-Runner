@@ -104,6 +104,9 @@ class JumpState extends State {
 class ProjectionState extends State {
     enter(scene, runner) {
 
+        //-----------------------------------------
+        //Save + freeze current physics
+        //-----------------------------------------
         runner._projSaved = {
             allowGravity: runner.body.allowGravity,
             vx: runner.body.velocity.x,
@@ -114,12 +117,14 @@ class ProjectionState extends State {
         runner.body.setAllowGravity(false)
         runner.body.setVelocity(0, 0)
         runner.body.moves = false
-
         runner.body.reset(runner.x, runner.y)
 
         scene.physics.world.timeScale = 0.2
         scene.cameras.main.stopFollow()
 
+        //-----------------------------------------
+        //Projection Params
+        //-----------------------------------------
         this.framesTotal = runner.projFrameStep
         this.windowMs = runner.getProjWindowsMs()
         this.timeLeft = this.windowMs
@@ -132,71 +137,200 @@ class ProjectionState extends State {
             this.sequence.push(Math.random() < 0.5 ? 'A' : 'D')
         }
 
-        let MIN_AHEAD = this.stepPx
+
+        //-----------------------------------------
+        //Projection Reach scales with speed
+        //-----------------------------------------
+        let MIN_AHEAD = this.stepPx * this.framesTotal
+        let MAX_Y_REACH = this.stepPx * this.framesTotal
         const CURVE_THRESHOLD = 16
 
         const frontX = runner.body ? runner.body.right : runner.getBounds().right
         const startY = runner.y
 
-        //choose only valid forward marker
-        const nextMarker = (scene.safeZones || []).find(z => z.x >= runner.x + MIN_AHEAD)
-        const endY = nextMarker ? nextMarker.y : startY
-        const dy = endY - startY
+        const bodyCenterOffsetX = runner.body.center.x - runner.x
+        const bodyCenterOffsetY = runner.body.center.y - runner.y
 
-        const solidLayer = scene.platformslayer
-        
-        //prevent the first frame getting a large push towards the marker
-        const chainEndX = frontX + this.stepPx * this.framesTotal
-        const aimStrength = 0.2
-        const aimOffsetX = nextMarker ? (nextMarker.x - chainEndX) * aimStrength : 0
+        const solidLayers = scene.solidLayers || []
 
-        for (let i = 0; i < this.framesTotal; i++) {
+        const halfW = runner.body.width * 0.45
+        const halfH = runner.body.height * 0.45
 
-            //frame x placement
-            const baseX = frontX + this.stepPx * (i + 1)
-            let targetX = baseX + aimOffsetX
-            targetX = Math.max(baseX, targetX)
+        const getCollideTile = (x, y) => {
+            for (const L of solidLayers) {
+                if (!L) continue
+                const t = L.getTileAtWorldXY(x, y, true)
+                if (t && t.collides) return t
+            }
 
-            //frame y placement
+            return null
+        }
+
+        const frameBlocked = (x, y) => {
+            if (!runner.body || solidLayers.length === 0) return false
+
+            //Conver srpite position to body center position
+            const cx = x + bodyCenterOffsetX
+            const cy = y + bodyCenterOffsetY
+
+            const w = runner.body.width
+            const h = runner.body.height
+            const left = cx - w * 0.5
+            const top = cy - h * 0.5
+
+            for (const L of solidLayers) {
+                if (!L) continue
+                const tiles = L.getTilesWithinWorldXY(left, top, w, h, { isNotEmpty: true })
+                if (tiles && tiles.some(t => t && t.collides)) return true
+            }
+            return false
+        }
+
+        const segmentClear = (ax, ay, bx, by) => {
+            const dist = Phaser.Math.Distance.Between(ax, ay, bx, by)
+            const step = 6  // px between samples (4–8 is good)
+            const n = Math.max(1, Math.ceil(dist / step))
+
+            for (let s = 1; s <= n; s++) {
+                const t = s / n
+                const x = Phaser.Math.Linear(ax, bx, t)
+                const y = Phaser.Math.Linear(ay, by, t)
+                if (frameBlocked(x, y)) return false
+            }
+            return true
+        }
+
+        const nudgeX = (x, y) => {
+            if (solidLayers.length === 0) return x
+            if (!frameBlocked(x, y)) return x
+
+            const maxNudge = 32
+            for (let d = 8; d <= maxNudge; d += 8) {
+                if (!frameBlocked(x + d, y)) return x + d
+                if (!frameBlocked(x - d, y)) return x - d
+            }
+            return null
+        }
+
+        const snapToGround = (x, y) => {
+            if (solidLayers.length === 0) return { y, snapped: false }
+
+            const MAX_DOWN = 80
+            const SNAP_DIST = 16
+
+            const cx = x + bodyCenterOffsetX
+            const cy = y + bodyCenterOffsetY
+
+            const footY = cy + runner.body.height * 0.5
+
+            for (let off = 0; off <= MAX_DOWN; off += 8) {
+                const yTry = footY + off
+                const tile = getCollideTile(cx, yTry)
+                if (!tile || !tile.collides) continue
+
+                const tileTop = tile.getTop()
+                const dist = tileTop - footY
+                if (dist > SNAP_DIST) return { y, snapped: false }
+
+                const ySnap = tileTop - runner.body.height / 2
+
+                const ySnapSprite = ySnap - bodyCenterOffsetY
+                // reject if you'd still be embedded at the snapped pose (hopefully rejects :/)
+                if (frameBlocked(x, ySnapSprite)) return { y, snapped: false }
+
+                return { y: ySnapSprite, snapped: true }
+            }
+
+            return { y, snapped: false }
+        }
+
+        //build ONE frame position using the current rules
+        //(used both for validating markers and for the real ghosts)
+
+        const computeFrame = (endY, dy, aimOffsetX, i) => {
             const t = (i + 1) / this.framesTotal
-            let targetY = Phaser.Math.Linear(startY, endY, t)
 
-            if (nextMarker && Math.abs(dy) >= CURVE_THRESHOLD) {
+            const baseX = frontX + this.stepPx * (i + 1)
+            let x = baseX + aimOffsetX
+            x = Math.max(baseX, x)
+
+            let y = Phaser.Math.Linear(startY, endY, t)
+
+            //making sure its always concave down/ height arc
+            if (Math.abs(dy) >= CURVE_THRESHOLD) {
                 const arc = 4 * t * (1 - t)
                 const arcHeight = Phaser.Math.Clamp(Math.abs(dy) * 0.6, 24, 90)
 
-                //making sure any arc is concave down
                 const h0 = -startY
                 const h1 = -endY
                 let h = Phaser.Math.Linear(h0, h1, t)
-
                 h += arcHeight * arc
-                targetY = -h
-
+                y = -h
             }
+            
+            //gentle snap
+            const snap = snapToGround(x, y)
+            y = snap.y
 
-            //used for snapping towards the surface, prevent clipping through objects
-            if (solidLayer) {
-                let snapped = false
+            //nudge off collisions
+            const nx = nudgeX(x, y)
+            if (nx === null) return null
+            x = nx
 
-                for (let offset = -80; offset <= 80; offset += 8) {
+            if (frameBlocked(x, y)) return null
 
-                    const yTry = targetY + offset
-                    const tile = solidLayer.getTileAtWorldXY(targetX, yTry, true)
+            return { x, y }
+        }
 
-                    if (tile && tile.collides) {
-                        targetY = tile.getTop() - runner.body.height / 2
-                        snapped = true
-                        break
-                    }
-                }
+        const chainEndX = frontX + this.stepPx * this.framesTotal
+        const aimStrength = 0.2
 
-                if (!snapped) {
-                    targetY = Phaser.Math.Clamp(targetY, startY - 140, startY + 140)
-                }
+        const aimForMarker = (m) => Phaser.Math.Clamp((m.x - chainEndX) * aimStrength, -32, 32)
+
+        const markerReachable = (marker) => {
+            const endY = marker.y
+            const dy = endY - startY
+            const aimOffsetX = aimForMarker(marker)
+
+            let prev = { x: runner.x, y: runner.y }
+
+            for (let i = 0; i < this.framesTotal; i++) {
+                const p = computeFrame(endY, dy, aimOffsetX, i)
+                if (!p) return false
+
+                // NEW: reject if you'd have to pass through a solid to reach this frame
+                if (!segmentClear(prev.x, prev.y, p.x, p.y)) return false
+
+                prev = p
             }
+            return true
+        }
 
-            const ghostFrame = scene.add.sprite(targetX, targetY, 'testNaoya')
+         //choose only valid forward marker
+        const zoneCandidates = (scene.safeZones || [])
+            .filter(z => z.x >= frontX + MIN_AHEAD)
+            .filter(z => Math.abs(z.y - startY) <= MAX_Y_REACH)
+            .sort((a, b) => a.x - b.x)
+
+        let nextMarker = null
+        for (const m of zoneCandidates) {
+            if (markerReachable(m)) {
+                nextMarker = m
+                break
+            }
+        }
+
+        const endY = nextMarker ? nextMarker.y : startY
+        const dy = endY - startY
+        const aimOffsetX = nextMarker ? aimForMarker(nextMarker) : 0
+
+        for (let i = 0; i < this.framesTotal; i++) {
+            const p = computeFrame(endY, dy, aimOffsetX, i)
+            
+            //if a frame becomes invalid, clamp near runner rather than stretching
+            if (!p) break
+            
+            const ghostFrame = scene.add.sprite(p.x, p.y, 'testNaoya')
             ghostFrame.setTint(0x9933ff)
             ghostFrame.setAlpha(0.8)
             ghostFrame.setDepth(9)
@@ -304,12 +438,18 @@ class ProjectionState extends State {
 
 class FreezeState extends State {
     enter(scene, runner) {
+        this.timeLeft = 1000
+
         runner.freezeSFX.play()
         runner.setVelocity(0, 0)
-        runner
     }
 
-    execute() {
+    execute(scene, runner) {
+        this.timeLeft -= scene.game.loop.delta
+        if (this.timeLeft <= 0) {
+            this.stateMachine.transition('run')
+            return
+        }
 
     }
 }

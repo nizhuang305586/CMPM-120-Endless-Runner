@@ -160,12 +160,32 @@
     <property name="colliders" type="bool" value="true"/>
    </properties>
   </tile>
+  <tile id="39">
+   <properties>
+    <property name="colliders" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="40">
+   <properties>
+    <property name="colliders" type="bool" value="true"/>
+   </properties>
+  </tile>
   <tile id="48">
    <properties>
     <property name="colliders" type="bool" value="true"/>
    </properties>
   </tile>
   <tile id="49">
+   <properties>
+    <property name="colliders" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="50">
+   <properties>
+    <property name="colliders" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="51">
    <properties>
     <property name="colliders" type="bool" value="true"/>
    </properties>
@@ -303,12 +323,12 @@
 </data>
  </layer>
  <objectgroup id="4" name="Markers">
-  <object id="1" name="SafeZone" x="126" y="260"/>
-  <object id="2" name="SafeZone" x="500" y="87"/>
-  <object id="3" name="SafeZone" x="540" y="290"/>
-  <object id="4" name="SafeZone" x="50" y="487"/>
-  <object id="5" name="SafeZone" x="342" y="468"/>
-  <object id="6" name="SafeZone" x="670" y="450"/>
+  <object id="1" name="SafeZone" x="126" y="241"/>
+  <object id="2" name="SafeZone" x="500" y="65"/>
+  <object id="3" name="SafeZone" x="540" y="271"/>
+  <object id="4" name="SafeZone" x="50" y="466"/>
+  <object id="5" name="SafeZone" x="342" y="450"/>
+  <object id="6" name="SafeZone" x="670" y="436"/>
   <object id="7" name="HazardZone" x="232" y="499"/>
  </objectgroup>
 </map>
