@@ -11,13 +11,16 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         const baseSpeed = 150
         this.baseSpeed = baseSpeed
         this.setScale(0.24)
+        this.setSize(100, 200)
 
         //character values
         this.RunnerSpeed = this.baseSpeed
-        this.jumpPower = 350
+        this.jumpPower = 400
+        this.tookDamage = 500
         this.speedStep = 15
         this.maxSpeed = 500
         this.isSliding = false
+        this.runAnimPlaying = false
 
         scene.runnerFSM = new StateMachine('run', {
             run: new RunState(),
@@ -36,7 +39,6 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         this.projDecay = 350
         this.projStepMinPx = 48
         this.projStepMaxPx = 96
-        this.forceProjSlide = false
         this.currentStepPx = 48
     }
 
@@ -61,7 +63,9 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
 class RunState extends State {
     enter(scene, runner) {
+        console.log('Run State')
         runner.anims.play('run', true)
+        runner.runAnimPlaying = true
         runner.setVelocityX(runner.RunnerSpeed)
     }
 
@@ -76,9 +80,16 @@ class RunState extends State {
 
         if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
             runner.returnState = 'run'
-            runner.forceProjSlide = false
             this.stateMachine.transition('projection')
             return
+        }
+
+        if (runner.body.velocity.y > 0) {
+            runner.anims.play('fall', true)
+            runner.runAnimPlaying = false
+        } else if (!runner.runAnimPlaying) {
+            runner.anims.play('run', true)
+            runner.runAnimPlaying = true
         }
 
         runner.setVelocityX(runner.RunnerSpeed)
@@ -88,17 +99,24 @@ class RunState extends State {
 
 class JumpState extends State {
     enter(scene, runner) {
+        console.log("Jump State")
+        runner.anims.play('jump', true)
         runner.setVelocityX(runner.RunnerSpeed)
-        if (runner.body.blocked.down) {
-            runner.setVelocityY(-runner.jumpPower)
-        }
+        runner.setVelocityY(-runner.jumpPower)
     }
     execute(scene, runner) {
+        const FramePKey = scene.keys.FKey
 
-        if (runner.body.blocked.down) {
+        if (runner.body.velocity.y >= 0 && runner.body.blocked.down) {
             this.stateMachine.transition('run')
             return
         }
+
+        if (Phaser.Input.Keyboard.JustDown(FramePKey)) {
+            this.stateMachine.transition('projection')
+            return
+        }
+
         runner.setVelocityX(runner.RunnerSpeed)
     }
 }
@@ -157,8 +175,6 @@ class ProjectionState extends State {
 
         const solidLayers = scene.solidLayers || []
 
-        const halfW = runner.body.width * 0.45
-        const halfH = runner.body.height * 0.45
 
         const getCollideTile = (x, y) => {
             for (const L of solidLayers) {
@@ -324,10 +340,29 @@ class ProjectionState extends State {
             return true
         }
 
+        const airborne = runner.body && !runner.body.blocked.down
+        const vy = runner.body ? runner.body.velocity.y : 0
+
+        const UP_GRACE = 12
+        const DOWN_GRACE = 24
+
          //choose only valid forward marker
         const zoneCandidates = (scene.safeZones || [])
             .filter(z => z.x >= frontX + MIN_AHEAD)
             .filter(z => Math.abs(z.y - startY) <= MAX_Y_REACH)
+            .filter(z => {
+                if (!airborne) return true
+
+                const dy = z.y - startY
+
+                //If rising, dont pick any targets below
+                if (vy < -5) return dy <= -DOWN_GRACE
+
+                //If falling, don't pick any targets above
+                if (vy > 5) return dy >= -UP_GRACE
+
+                return true
+            })
             .sort((a, b) => a.x - b.x)
 
         let nextMarker = null
@@ -362,7 +397,7 @@ class ProjectionState extends State {
                 ghostFrame.x,
                 ghostFrame.y - 40,
                 this.sequence[i],
-                { fontSize: '20px', color: '#ffffff'}
+                { fontSize: '20px', color: this.sequence[i] === 'A' ? '#FFFFFF' : '#000000', fontStyle: 'bold'}
             ).setOrigin(0.5)
             label.setDepth(8)
             this.spriteFrames.push({ ghostFrame, label })
@@ -396,7 +431,7 @@ class ProjectionState extends State {
             duration: 90,
             ease: 'Sine.Out',
             onUpdate: () => {
-                runner.setFrame(this.index)
+                runner.setFrame(this.index - 1)
                 runner.body.reset(runner.x, runner.y)
             },
             onComplete: () => {
@@ -484,8 +519,30 @@ class FreezeState extends State {
 }
 
 class DamageState extends State {
-    enter() {
+    enter(scene, runner) {
+        if (scene.freezeFrame.setVisible() !== false)
+            scene.freezeFrame.setVisible(false)
+        
+        runner.body.setVelocityY(-runner.tookDamage)
+        runner.body.setVelocityX(runner.onTripOrFreeze())
 
+        runner.projSuccess = 0
+        
+        scene.tweens.add({
+            targets: runner,
+            alpha: 0.5,
+            duration: 90,
+            ease: 'Power1',
+            yoyo: true,
+            repeat: 5,
+            onComplete: () => {
+                runner.setAlpha(1)
+            }
+        })
+
+        runner.setAlpha(1)
+        this.stateMachine.transition('jump')
+        return
     }
 
     execute() {

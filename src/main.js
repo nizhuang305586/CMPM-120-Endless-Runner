@@ -43,6 +43,7 @@ const config = {
     },
     width: 1280,
     height: 720,
+    backgroundColor: '#c0bf7c',
     zoom: 1,
     scale: {
         mode: Phaser.Scale.FIT,

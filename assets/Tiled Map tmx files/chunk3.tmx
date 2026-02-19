@@ -324,11 +324,11 @@
  </layer>
  <objectgroup id="4" name="Markers">
   <object id="1" name="SafeZone" x="126" y="241"/>
-  <object id="2" name="SafeZone" x="500" y="65"/>
+  <object id="2" name="SafeZone" x="500" y="94"/>
   <object id="3" name="SafeZone" x="540" y="271"/>
   <object id="4" name="SafeZone" x="50" y="466"/>
   <object id="5" name="SafeZone" x="342" y="450"/>
-  <object id="6" name="SafeZone" x="670" y="436"/>
+  <object id="6" name="SafeZone" x="670" y="440"/>
   <object id="7" name="HazardZone" x="232" y="499"/>
  </objectgroup>
 </map>
