@@ -140,7 +140,7 @@ class Menu extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 8
         }).setOrigin(0.5).setScrollFactor(0).setDepth(10)
-        
+
         this.instructionsBody = this.add.text(
             width * 0.5,
             height * 0.52,
@@ -149,16 +149,14 @@ class Menu extends Phaser.Scene {
                 '- Space: Jump',
                 '- F: Projection (6-frame rule)',
                 '- A / D: QTE inputs during projection',
-                '',
                 'HOW TO PLAY:',
                 '- Keep running and survive as long as possible.',
                 '- When Projection starts, you must input the 6-frame sequence correctly.',
                 '- Each successful projection increases your base speed',
                 '- If you break the rule, you freeze in frame and lose all your speed',
-                '',
-                '',
                 'TOOLTIPS:',
-                '- Projection allows you to go through walls!!!'
+                '- Projection allows you to go through walls!!!',
+                '- You can freeze intentionally to save yourself!!!'
             ].join('\n'),
             {
                 fontFamily: 'Arial',

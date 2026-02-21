@@ -82,13 +82,6 @@ class Play extends Phaser.Scene {
             repeat: 0
         })
 
-        this.anims.create({
-            key: 'sprint',
-            frames: this.anims.generateFrameNumbers('naoya', {start: 10, end: 15}),
-            frameRate: 12,
-            repeat: -1
-        })
-
         this.scoreText = this.add.text(16, 16, '', {
             fontFamily: 'monospace',
             fontSize: '18px',
@@ -485,11 +478,13 @@ class Play extends Phaser.Scene {
 
         if (!this.isGameOver && !this.scorePaused) {
             const dt = delta / 1000
-            const dx = Math.max(0, this.runner.x - this.lastRunnerX)
-            this.lastRunnerX = this.runner.x
+            const dx = this.runner.x - this.lastRunnerX
 
-            const mult = 1 + this.combo * 0.15
-            this.score += (this.scoreRate * dt + dx * this.distRate) * mult
+            if (dx > 0) {
+                this.score += dx
+            }
+
+            this.lastRunnerX = this.runner.x
 
             this.updateHUD()
         } else if (this.scorePaused) {

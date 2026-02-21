@@ -68,12 +68,7 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
 class RunState extends State {
     enter(scene, runner) {
-
-        if (runner.projSuccess < 5)
-            runner.anims.play('run', true)
-        else
-            runner.anims.play('sprint', true)
-
+        runner.anims.play('run', true)
         runner.runAnimPlaying = true
         runner.setVelocityX(runner.RunnerSpeed)
     }
@@ -97,10 +92,7 @@ class RunState extends State {
             runner.anims.play('fall', true)
             runner.runAnimPlaying = false
         } else if (!runner.runAnimPlaying) {
-            if (runner.projSuccess < 5)
-                runner.anims.play('run', true)
-            else
-                runner.anims.play('sprint', true)
+            runner.anims.play('run', true)
             runner.runAnimPlaying = true
         }
 
