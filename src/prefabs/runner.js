@@ -457,7 +457,7 @@ class ProjectionState extends State {
                 ghostFrame.x,
                 ghostFrame.y - 40,
                 this.sequence[i],
-                { fontSize: '20px', color: this.sequence[i] === 'A' ? '#FFFFFF' : '#000000', fontStyle: 'bold'}
+                { fontSize: '20px', color: this.sequence[i] === 'A' ? '#FFFFFF' : '#4E9FE5', fontStyle: 'bold'}
             ).setOrigin(0.5)
             scene.uiCam.ignore(label)
             label.setDepth(8)
