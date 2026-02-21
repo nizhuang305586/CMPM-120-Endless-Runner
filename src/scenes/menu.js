@@ -140,8 +140,7 @@ class Menu extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 8
         }).setOrigin(0.5).setScrollFactor(0).setDepth(10)
-
-        // Edit this text freely
+        
         this.instructionsBody = this.add.text(
             width * 0.5,
             height * 0.52,
@@ -157,6 +156,9 @@ class Menu extends Phaser.Scene {
                 '- Each successful projection increases your base speed',
                 '- If you break the rule, you freeze in frame and lose all your speed',
                 '',
+                '',
+                'TOOLTIPS:',
+                '- Projection allows you to go through walls!!!'
             ].join('\n'),
             {
                 fontFamily: 'Arial',
