@@ -3,8 +3,13 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         super(scene, x, y, texture, frame)
         scene.add.existing(this)
         scene.physics.add.existing(this)
-    
         this.body.setCollideWorldBounds(true)
+
+        this.body.enable = true
+        this.body.moves = true
+        this.body.setAllowGravity(true)
+        this.body.setVelocity(0, 0)
+        this.body.setImmovable(false)
 
         this.freezeSFX = scene.sound.add('Freeze')
 
@@ -63,8 +68,12 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
 
 class RunState extends State {
     enter(scene, runner) {
-        console.log('Run State')
-        runner.anims.play('run', true)
+
+        if (runner.projSuccess < 5)
+            runner.anims.play('run', true)
+        else
+            runner.anims.play('sprint', true)
+
         runner.runAnimPlaying = true
         runner.setVelocityX(runner.RunnerSpeed)
     }
@@ -88,7 +97,10 @@ class RunState extends State {
             runner.anims.play('fall', true)
             runner.runAnimPlaying = false
         } else if (!runner.runAnimPlaying) {
-            runner.anims.play('run', true)
+            if (runner.projSuccess < 5)
+                runner.anims.play('run', true)
+            else
+                runner.anims.play('sprint', true)
             runner.runAnimPlaying = true
         }
 
@@ -99,7 +111,6 @@ class RunState extends State {
 
 class JumpState extends State {
     enter(scene, runner) {
-        console.log("Jump State")
         runner.anims.play('jump', true)
         runner.setVelocityX(runner.RunnerSpeed)
         runner.setVelocityY(-runner.jumpPower)
@@ -123,6 +134,7 @@ class JumpState extends State {
 
 class ProjectionState extends State {
     enter(scene, runner) {
+        scene.scorePaused = true
 
         //-----------------------------------------
         //Save + freeze current physics
@@ -174,15 +186,27 @@ class ProjectionState extends State {
         const bodyCenterOffsetY = runner.body.center.y - runner.y
 
         const solidLayers = scene.solidLayers || []
-
+        
 
         const getCollideTile = (x, y) => {
-            for (const L of solidLayers) {
-                if (!L) continue
+            for (const L of scene.solidLayers) {
+                if (!L || !L.scene || !L.active || !L.tilemapLayer) continue
                 const t = L.getTileAtWorldXY(x, y, true)
                 if (t && t.collides) return t
             }
 
+            return null
+        }
+
+        const firstWallAhead = (fromX, toX, probeY) => {
+            const dir = Math.sign(toX - fromX)
+            if (dir === 0) return null
+
+            const step = 6
+            for (let x = fromX; dir > 0 ? x <= toX : x >= toX; x += dir * step) {
+                const t = getCollideTile(x, probeY)
+                if (t && t.collides) return t
+            }
             return null
         }
 
@@ -200,23 +224,29 @@ class ProjectionState extends State {
 
             for (const L of solidLayers) {
                 if (!L) continue
+                console.log('blocked at', x, y)
                 const tiles = L.getTilesWithinWorldXY(left, top, w, h, { isNotEmpty: true })
                 if (tiles && tiles.some(t => t && t.collides)) return true
             }
             return false
         }
 
-        const segmentClear = (ax, ay, bx, by) => {
-            const dist = Phaser.Math.Distance.Between(ax, ay, bx, by)
-            const step = 6  // px between samples (4–8 is good)
-            const n = Math.max(1, Math.ceil(dist / step))
+        const segmentClear = (x0, y0, x1, y1) => {
+            if (!runner.body || solidLayers.length === 0) return true
 
-            for (let s = 1; s <= n; s++) {
-                const t = s / n
-                const x = Phaser.Math.Linear(ax, bx, t)
-                const y = Phaser.Math.Linear(ay, by, t)
-                if (frameBlocked(x, y)) return false
+            const steps = 16  // higher = stricter
+
+            for (let i = 1; i <= steps; i++) {
+                const t = i / steps
+
+                const x = Phaser.Math.Linear(x0, x1, t)
+                const y = Phaser.Math.Linear(y0, y1, t)
+
+                if (frameBlocked(x, y)) {
+                return false
+                }
             }
+
             return true
         }
 
@@ -245,7 +275,7 @@ class ProjectionState extends State {
             if (solidLayers.length === 0) return { y, snapped: false }
 
             const MAX_DOWN = 80
-            const SNAP_DIST = 16
+            const SNAP_DIST = 8
 
             const cx = x + bodyCenterOffsetX
             const cy = y + bodyCenterOffsetY
@@ -325,6 +355,29 @@ class ProjectionState extends State {
             const endY = marker.y
             const dy = endY - startY
             const aimOffsetX = aimForMarker(marker)
+            const goingUp = endY < startY - 8
+            let wall = null
+            let requiredSpriteY = null
+            let wallFaceX = null
+
+            if (goingUp && runner.body) {
+                const cx0 = runner.x + bodyCenterOffsetX
+                const halfW = runner.body.width * 0.5 - 2
+
+                // probe around chest/waist height (catches vertical faces)
+                const probeY = runner.y + bodyCenterOffsetY + runner.body.height * 0.2
+
+                wall = firstWallAhead(frontX, marker.x, probeY)
+                if (wall) {
+                // wall face X where we'd collide if we weren't above it
+                wallFaceX = wall.getLeft() - halfW
+
+                // to pass the wall, our body bottom must be above its top => sprite Y must be <= this
+                const wallTop = wall.getTop()
+                const bodyCenterYNeeded = wallTop - runner.body.height * 0.5 - 1
+                requiredSpriteY = bodyCenterYNeeded - bodyCenterOffsetY
+                }
+            }
 
             let prev = { x: runner.x, y: runner.y }
 
@@ -332,11 +385,18 @@ class ProjectionState extends State {
                 const p = computeFrame(endY, dy, aimOffsetX, i, prev.x)
                 if (!p) return false
 
-                // NEW: reject if you'd have to pass through a solid to reach this frame
                 if (!segmentClear(prev.x, prev.y, p.x, p.y)) return false
+
+                if (wall && requiredSpriteY != null) {
+                const bodyCenterX = p.x + bodyCenterOffsetX
+                if (bodyCenterX >= wallFaceX && p.y > requiredSpriteY) {
+                    return false
+                }
+                }
 
                 prev = p
             }
+
             return true
         }
 
@@ -388,6 +448,7 @@ class ProjectionState extends State {
             prevX = x
             
             const ghostFrame = scene.add.sprite(x, y, 'naoya', i)
+            scene.uiCam.ignore(ghostFrame)
             ghostFrame.setScale(0.24)
             ghostFrame.setTint(0x9933ff)
             ghostFrame.setAlpha(0.8)
@@ -399,6 +460,7 @@ class ProjectionState extends State {
                 this.sequence[i],
                 { fontSize: '20px', color: this.sequence[i] === 'A' ? '#FFFFFF' : '#000000', fontStyle: 'bold'}
             ).setOrigin(0.5)
+            scene.uiCam.ignore(label)
             label.setDepth(8)
             this.spriteFrames.push({ ghostFrame, label })
         }
@@ -457,12 +519,16 @@ class ProjectionState extends State {
     success(scene, runner) {
         this.clearGhosts()
 
+        scene.scorePaused = false
+
         scene.physics.world.timeScale = 1
         scene.cameras.main.startFollow(runner)
         scene.cameras.main.setDeadzone(0, 0)
         scene.cameras.main.setFollowOffset(-scene.scale.width * 0.25, 0)
 
         runner.projSuccess++
+
+        if (scene.onProjSuccess) scene.onProjSuccess()
 
         const s = runner._projSaved
         runner.body.moves = s.moves
@@ -478,12 +544,16 @@ class ProjectionState extends State {
 
         this.clearGhosts()
 
+        scene.scorePaused = false
+
         scene.physics.world.timeScale = 1
         scene.cameras.main.startFollow(runner)
         scene.cameras.main.setDeadzone(0, 0)
         scene.cameras.main.setFollowOffset(-scene.scale.width * 0.25, 0)
 
         runner.projSuccess = 0
+
+        if (scene.onProjFail) scene.onProjFail()
         
         const s = runner._projSaved
         runner.body.moves = s.moves

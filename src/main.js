@@ -28,7 +28,7 @@
  *  NaoyaSprite.png => made by me with more effort compared to devNaoya.png
  * 
  * 
- * Hours worked prediction: 31
+ * Hours worked prediction: 36
  * 
  * 
  */
@@ -43,7 +43,7 @@ const config = {
     },
     width: 1280,
     height: 720,
-    backgroundColor: '#c0bf7c',
+    backgroundColor: '#87CEEB',
     zoom: 1,
     scale: {
         mode: Phaser.Scale.FIT,
@@ -55,7 +55,7 @@ const config = {
             debug: true
         }
     },
-    scene: [ Load, Play ]
+    scene: [ Load, Menu, Play ]
 }
 
 const game = new Phaser.Game(config)

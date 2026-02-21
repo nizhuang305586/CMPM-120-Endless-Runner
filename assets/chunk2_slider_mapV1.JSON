@@ -40,7 +40,7 @@
          "name":"SoftBackground",
          "opacity":1,
          "type":"tilelayer",
-         "visible":true,
+         "visible":false,
          "width":48,
          "x":0,
          "y":0
@@ -167,7 +167,7 @@
                  "visible":true,
                  "width":0,
                  "x":333,
-                 "y":466
+                 "y":459
                 }, 
                 {
                  "height":0,
@@ -178,7 +178,7 @@
                  "visible":true,
                  "width":1,
                  "x":653,
-                 "y":472
+                 "y":465
                 }, 
                 {
                  "height":0,
@@ -234,6 +234,17 @@
                  "width":0,
                  "x":38,
                  "y":487
+                }, 
+                {
+                 "height":83,
+                 "id":10,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":165,
+                 "x":421,
+                 "y":636
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -242,7 +253,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":10,
+ "nextobjectid":11,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

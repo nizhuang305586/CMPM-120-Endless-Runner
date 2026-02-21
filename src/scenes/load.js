@@ -12,6 +12,8 @@ class Load extends Phaser.Scene {
         this.load.image('devTiles', 'devTiles.png')
         this.load.image('TerrainTiles', 'Grassland_Terrain_Tileset.png')
         this.load.image('FreezeFrame', 'FreezeFrame.png')
+        this.load.image('Mountains', 'MountainsBackgrond.png')
+        this.load.image('Sky', 'SkyBackground.png')
 
         this.load.tilemapTiledJSON('devMap', 'dev_map.json')
         this.load.tilemapTiledJSON('chunk1', 'chunk1_platforming_mapV1.JSON')
@@ -28,7 +30,7 @@ class Load extends Phaser.Scene {
     }
 
     create() {
-        this.scene.start('Play')
+        this.scene.start('Menu')
     }
     
 }
