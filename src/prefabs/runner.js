@@ -597,6 +597,8 @@ class DamageState extends State {
         runner.body.setVelocityX(runner.onTripOrFreeze())
 
         runner.projSuccess = 0
+
+        if (scene.onProjFail) scene.onProjFail()
         
         scene.tweens.add({
             targets: runner,

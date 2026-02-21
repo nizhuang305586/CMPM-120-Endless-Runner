@@ -19,6 +19,8 @@ class Load extends Phaser.Scene {
         this.load.tilemapTiledJSON('chunk1', 'chunk1_platforming_mapV1.JSON')
         this.load.tilemapTiledJSON('chunk2', 'chunk2_slider_mapV1.JSON')
         this.load.tilemapTiledJSON('chunk3', 'chunk3_basic_mapV1.JSON')
+        this.load.tilemapTiledJSON('chunk4', 'chunk4_air_mapV1.JSON')
+        this.load.tilemapTiledJSON('chunk5', 'chunk5_airV2_mapV1.JSON')
 
         this.load.image('testNaoya', 'devNaoya.png')
 

@@ -145,7 +145,7 @@ class Play extends Phaser.Scene {
         this.safeZones = []
         this.solidLayers = []
         this.worldEndX = 0
-        this.chunkKeys = ['chunk2', 'chunk3']
+        this.chunkKeys = ['chunk2', 'chunk3', 'chunk4', 'chunk5']
 
         const { runnerSP } = this.spawnChunk('chunk1', 0)
 
@@ -387,12 +387,10 @@ class Play extends Phaser.Scene {
 
         const yOffset = this.scale.height - map.heightInPixels
 
-        const sBackgroundLayer = map.createLayer('SoftBackground', tileset1, chunkX, yOffset)
         const platformsLayer   = map.createLayer('Platforms',     tileset1, chunkX, yOffset)
 
-        this.uiCam.ignore([sBackgroundLayer, platformsLayer])
+        this.uiCam.ignore([platformsLayer])
 
-        sBackgroundLayer.setDepth(3)
         platformsLayer.setDepth(5)
         platformsLayer.setCollisionByExclusion([-1], true, true)
         platformsLayer.calculateFacesWithin()
@@ -432,7 +430,6 @@ class Play extends Phaser.Scene {
             key,
             chunkX,
             map,
-            sBackgroundLayer,
             platformsLayer,
             hazardsLayer,
             solidLayers: [platformsLayer],
@@ -473,7 +470,6 @@ class Play extends Phaser.Scene {
                 c.hazardOverlap?.destroy()
                 c.platformsLayer?.destroy()
                 c.hazardsLayer?.destroy()
-                c.sBackgroundLayer?.destroy()
                 c.map?.destroy?.()
                 this.activeChunks.splice(i, 1)
             }
