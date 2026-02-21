@@ -594,7 +594,7 @@ class DamageState extends State {
         if (scene.freezeFrame.setVisible() !== false)
             scene.freezeFrame.setVisible(false)
 
-        runner.shoutsfx.play({
+        runner.hurtsfx.play({
             seek: 0.1
         })
         
