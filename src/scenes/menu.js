@@ -57,7 +57,7 @@ class Menu extends Phaser.Scene {
             .setScrollFactor(0)
             .setDepth(9)
 
-        this.muteHint = this.add.text(width - 12, height - 10, 'Click Mute', {
+        this.muteHint = this.add.text(width - 12, height - 10, 'Sound On', {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#cbd5ff'
@@ -72,6 +72,7 @@ class Menu extends Phaser.Scene {
         this.bgScroll = 0
         this.mode = 'menu'
         this.sound.mute = false
+
 
         this.buildMenuButtons()
         this.buildCreditsUI()
@@ -110,7 +111,7 @@ class Menu extends Phaser.Scene {
                 'Music: Dylan Lee',
                 'Sprites: Mica Bicaldo',
                 'Tiles: Shackhal',
-                '',
+                'SFX: pixabay',
                 ''
             ].join('\n'),
             {
@@ -197,7 +198,6 @@ class Menu extends Phaser.Scene {
         })
 
         btn.on('pointerdown', () => {
-            this.cameras.main.flash(70, 255, 255, 255)
             onClick()
         })
 
@@ -269,8 +269,8 @@ class Menu extends Phaser.Scene {
 
     toggleMute() {
         this.sound.mute = !this.sound.mute
-        this.btnMute.setText(this.sound.mute ? 'UNMUTE' : 'MUTE')
-        this.muteHint.setText(this.sound.mute ? 'Muted' : 'Sound On')
+        this.btnMute.setText(!this.sound.mute ? 'UNMUTE' : 'MUTE')
+        this.muteHint.setText(!this.sound.mute ? 'Muted' : 'Sound On')
     }
 
     update(time, delta) {

@@ -8,6 +8,10 @@ class Load extends Phaser.Scene {
 
         this.load.audio('Freeze', 'FreezeFrame.mp3')
         this.load.audio('bgMuix', 'SongRunning.mp3')
+        this.load.audio('projectHit', 'POP2.WAV')
+        this.load.audio('landsfx', 'landsfx.mp3')
+        this.load.audio('hurt', 'hurt.mp3')
+        this.load.audio('SHOUT', 'SHOUT.mp3')
 
         this.load.image('devTiles', 'devTiles.png')
         this.load.image('TerrainTiles', 'Grassland_Terrain_Tileset.png')

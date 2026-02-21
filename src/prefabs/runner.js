@@ -12,6 +12,10 @@ class Runner extends Phaser.Physics.Arcade.Sprite {
         this.body.setImmovable(false)
 
         this.freezeSFX = scene.sound.add('Freeze')
+        this.projectHit = scene.sound.add('projectHit')
+        this.landsfx = scene.sound.add('landsfx')
+        this.shoutsfx = scene.sound.add('SHOUT')
+        this.hurtsfx = scene.sound.add('hurt')
 
         const baseSpeed = 150
         this.baseSpeed = baseSpeed
@@ -112,6 +116,9 @@ class JumpState extends State {
 
         if (runner.body.velocity.y >= 0 && runner.body.blocked.down) {
             this.stateMachine.transition('run')
+            runner.landsfx.play({
+                seek: 0.2
+            })
             return
         }
 
@@ -473,6 +480,8 @@ class ProjectionState extends State {
         if (pressed !== this.sequence[this.index]) {
             this.fail(scene, runner)
             return
+        } else {
+            runner.projectHit.play()
         }
         
         this.spriteFrames[this.index].ghostFrame.setTint(0x55ff55)
@@ -584,6 +593,10 @@ class DamageState extends State {
     enter(scene, runner) {
         if (scene.freezeFrame.setVisible() !== false)
             scene.freezeFrame.setVisible(false)
+
+        runner.hurtsfx.play({
+            seek: 0.1
+        })
         
         runner.body.setVelocityY(-runner.tookDamage)
         runner.body.setVelocityX(runner.onTripOrFreeze())
