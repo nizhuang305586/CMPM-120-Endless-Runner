@@ -160,13 +160,46 @@ class Play extends Phaser.Scene {
             this.attachChunkColliders(chunk)
         }
 
-        this.runner.body.enable = true
-        this.runner.body.moves = true
-        this.runner.body.setAllowGravity(true)
+        const chunk1 = this.activeChunks[0];
+        const layer = chunk1.platformsLayer;
+        const hz = chunk1.hazardsLayer
+        if (hz) {
+            // 1) Re-arm hazard collision flags on tiles
+            hz.setCollisionByProperty({ hazard: true });
+            hz.calculateFacesWithin();
 
-        this.runner.body.setVelocity(0, 1)
-        this.physics.world.collide(this.runner, this.solidLayers)
-        this.runner.body.setVelocity(0, 0)
+            // 2) Rebuild overlap (destroy old if it exists)
+            if (chunk1.hazardOverlap) {
+                if (chunk1.hazardOverlap.world) chunk1.hazardOverlap.destroy();
+                chunk1.hazardOverlap = null;
+            }
+
+            chunk1.hazardOverlap = this.physics.add.overlap(
+                this.runner,
+                hz,
+                () => this.takeDamage(1),
+                (runner, tile) => tile && tile.properties && tile.properties.hazard === true,
+                this
+            );
+
+            this.chunkColliders.push(chunk1.hazardOverlap);
+        }
+
+        // 1) Re-arm collision indexes + faces
+        layer.setCollisionByExclusion([-1], true, true);
+        layer.calculateFacesWithin();
+
+        // 2) Rebuild the collider (forces Arcade to use the fresh collision data)
+        if (chunk1.platformCollider) {
+        // guard: collider might already be in world
+        if (chunk1.platformCollider.world) chunk1.platformCollider.destroy();
+        chunk1.platformCollider = null;
+        }
+
+        // create a fresh collider and store it
+        chunk1.platformCollider = this.physics.add.collider(this.runner, layer);
+        this.chunkColliders.push(chunk1.platformCollider);
+
 
         //camera
         this.cameras.main.startFollow(this.runner, true, 1, 1)
@@ -199,9 +232,25 @@ class Play extends Phaser.Scene {
 
         this.updateHUD()
 
-        this.events.once('shutdown', () => {
-            this.chunkColliders.length = 0
-        })
+        const cleanupPhysicsLinks = () => {
+            const world = this.physics?.world;
+            if (!world) return;
+
+            for (const c of this.chunkColliders) {
+                if (c && c.world) c.destroy();
+            }
+
+            for (const ch of this.activeChunks) {
+                ch.platformCollider = null
+                ch.hazardOverlap = null
+            }
+
+
+            this.chunkColliders.length = 0;
+        };
+
+        this.events.once(Phaser.Scenes.Events.PRE_SHUTDOWN, cleanupPhysicsLinks);
+        this.events.once(Phaser.Scenes.Events.DESTROY, cleanupPhysicsLinks);
     }
 
 

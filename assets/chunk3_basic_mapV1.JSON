@@ -156,7 +156,7 @@
                  "visible":true,
                  "width":0,
                  "x":500,
-                 "y":94
+                 "y":63
                 }, 
                 {
                  "height":0,
@@ -193,17 +193,6 @@
                 }, 
                 {
                  "height":0,
-                 "id":6,
-                 "name":"SafeZone",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":670,
-                 "y":440
-                }, 
-                {
-                 "height":0,
                  "id":7,
                  "name":"HazardZone",
                  "rotation":0,
@@ -212,6 +201,17 @@
                  "width":0,
                  "x":232,
                  "y":499
+                }, 
+                {
+                 "height":0,
+                 "id":8,
+                 "name":"SafeZone",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":669,
+                 "y":433
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -220,7 +220,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":8,
+ "nextobjectid":9,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
