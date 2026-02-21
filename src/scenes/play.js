@@ -12,6 +12,7 @@ class Play extends Phaser.Scene {
         this.physics.world.resume()
         this.physics.world.timeScale = 1
         this.physics.world.gravity.y = 0
+        this.physics.world.drawDebug = false
 
 
         //audio
