@@ -594,7 +594,7 @@ class DamageState extends State {
         if (scene.freezeFrame.setVisible() !== false)
             scene.freezeFrame.setVisible(false)
 
-        if ((Math.random() * 100) == 1) {
+        if (Math.floor(Math.random() * 100) == 1) {
             runner.shoutsfx.play({
                 seek: 0.1
             })
