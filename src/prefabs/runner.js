@@ -594,9 +594,13 @@ class DamageState extends State {
         if (scene.freezeFrame.setVisible() !== false)
             scene.freezeFrame.setVisible(false)
 
-        runner.shoutsfx.play({
-            seek: 0.1
-        })
+        if ((Math.random() * 100) == 1) {
+            runner.shoutsfx.play({
+                seek: 0.1
+            })
+        } else {
+            runner.hurtsfx.play()
+        }
         
         runner.body.setVelocityY(-runner.tookDamage)
         runner.body.setVelocityX(runner.onTripOrFreeze())
